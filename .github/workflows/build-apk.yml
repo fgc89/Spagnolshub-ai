@@ -2,13 +2,11 @@ name: Crear APK SpanishHub AI
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "SpanishHubAI_APK_proyecto.zip"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Descargar proyecto
         uses: actions/checkout@v4
@@ -19,12 +17,16 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Configurar Android
+      - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Instalar herramientas
+      - name: Instalar herramientas Android
         run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager --licenses
+
+      - name: Instalar Gradle
+        run: |
           curl -fsSL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /tmp
 
