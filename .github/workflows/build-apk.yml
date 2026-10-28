@@ -1,4 +1,6 @@
-Crear APK SpanishHub AI
+name: Crear APK SpanishHub AI
+
+on:
   workflow_dispatch:
 
 jobs:
