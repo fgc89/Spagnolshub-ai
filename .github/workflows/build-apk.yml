@@ -1,4 +1,4 @@
-name: Crear APK SpanishHub AI
+ name: Crear APK SpanishHub AI
 
 on:
   workflow_dispatch:
@@ -23,12 +23,39 @@ jobs:
       - name: Instalar herramientas Android
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
 
       - name: Instalar Gradle
         run: |
           curl -fsSL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /tmp
+
+      - name: Comprobar ZIP del proyecto
+        run: |
+          set -e
+          ZIP="SpanishHubAI_APK_proyecto.zip"
+
+          if [ ! -f "$ZIP" ]; then
+            echo "::error::No se encuentra $ZIP en la raíz del repositorio."
+            exit 1
+          fi
+
+          if [ ! -s "$ZIP" ]; then
+            echo "::error::El ZIP está vacío."
+            exit 1
+          fi
+
+          unzip -t "$ZIP"
+
+          if ! unzip -Z1 "$ZIP" | grep -Eq '(^|/)app/build.gradle(\.kts)?$'; then
+            echo "::error::Falta app/build.gradle o app/build.gradle.kts."
+            exit 1
+          fi
+
+          if ! unzip -Z1 "$ZIP" | grep -Eq '(^|/)settings.gradle(\.kts)?$'; then
+            echo "::error::Falta settings.gradle o settings.gradle.kts."
+            exit 1
+          fi
 
       - name: Extraer proyecto
         run: |
@@ -42,43 +69,7 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('source/**/*.gradle*', 'source/**/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
-
-      - name: Compilar APK
-        run: |
-          cd source
-          /tmp/gradle-8.9/bin/gradle assembleDebug
-
-      - name: Guardar APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: SpanishHubAI-APK
-          path: source/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Instalar Gradle
-        run: |
-          curl -fsSL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o /tmp/gradle.zip
-          unzip -q /tmp/gradle.zip -d /tmp
-
-      - name: Comprobar proyecto
-        run: |
-          test -f SpanishHubAI_APK_proyecto.zip
-          mkdir -p source
-          unzip -q SpanishHubAI_APK_proyecto.zip -d source
-          test -f source/gradlew || test -f source/build.gradle || test -f source/build.gradle.kts || test -f source/settings.gradle || test -f source/settings.gradle.kts
-
-      - name: Compilar APK
-        run: |
-          cd source
-          /tmp/gradle-8.9/bin/gradle assembleDebug
-
-      - name: Guardar APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: SpanishHubAI-APK
-          path: source/app/build/outputs/apk/debug/app-debug.apk
-          
+            - name: Cache
   uses: actions/cache@v5.1.0
   with:
     # A list of files, directories, and wildcard patterns to cache and restore
@@ -97,83 +88,16 @@ jobs:
     lookup-only: # optional, default is false
     # Run the post step to save the cache even if another step before fails
     save-always: # optional, default is false
-    - name: Download a Build Artifact
-    
-  uses: actions/download-artifact@v8.0.2
-  with:
-    # Name of the artifact to download. If unspecified, all artifacts for the run are downloaded.
-    name: # optional
-    # IDs of the artifacts to download, comma-separated. Either inputs `artifact-ids` or `name` can be used, but not both.
-    artifact-ids: # optional
-    # Destination path. Supports basic tilde expansion. Defaults to $GITHUB_WORKSPACE
-    path: # optional
-    # A glob pattern matching the artifacts that should be downloaded. Ignored if name is specified.
-    pattern: # optional
-    # When multiple artifacts are matched, this changes the behavior of the destination directories. If true, the downloaded artifacts will be in the same directory specified by path. If false, the downloaded artifacts will be extracted into individual named directories within the specified path.
-    merge-multiple: # optional, default is false
-    # The GitHub token used to authenticate with the GitHub API. This is required when downloading artifacts from a different repository or from a different workflow run. If this is not specified, the action will attempt to download artifacts from the current repository and the current workflow run.
-    github-token: # optional
-    # The repository owner and the repository name joined together by "/". If github-token is specified, this is the repository that artifacts will be downloaded from.
-    repository: # optional, default is ${{ github.repository }}
-    # The id of the workflow run where the desired download artifact was uploaded from. If github-token is specified, this is the run that artifacts will be downloaded from.
-    run-id: # optional, default is ${{ github.run_id }}
-    # If true, the downloaded artifact will not be automatically extracted/decompressed. This is useful when you want to handle the artifact as-is without extraction.
-    skip-decompress: # optional, default is false
-    # The behavior when a downloaded artifact's digest does not match the expected digest. Options: ignore, info, warn, error. Default is error which will fail the action.
-    digest-mismatch: # optional, default is error
 
-    - name: Setup Go environment
-  uses: actions/setup-go@v7.0.0
-  with:
-    # The Go version to download (if necessary) and use. Supports semver spec and ranges. Be sure to enclose this option in single quotation marks.
-    go-version: # optional
-    # Path to the go.mod, go.work, .go-version, or .tool-versions file.
-    go-version-file: # optional
-    # Set this option to true if you want the action to always check for the latest available version that satisfies the version spec
-    check-latest: # optional
-    # Used to pull Go distributions from go-versions. Since there's a default, this is typically not supplied by the user. When running this action on github.com, the default value is sufficient. When running on GHES, you can pass a personal access token for github.com if you are experiencing rate limiting.
-    token: # optional, default is ${{ github.server_url == 'https://github.com' && github.token || '' }}
-    # Used to specify whether caching is needed. Set to true, if you'd like to enable caching.
-    cache: # optional, default is true
-    # Used to specify the path to a dependency file (e.g., go.mod, go.sum)
-    cache-dependency-path: # optional
-    # Target architecture for Go to use. Examples: x86, x64. Will use system architecture by default.
-    architecture: # optional
-    # Custom base URL for downloading Go distributions. Use this to download Go from a mirror or custom source. Defaults to "https://go.dev/dl". Can also be set via the GO_DOWNLOAD_BASE_URL environment variable. The input takes precedence over the environment variable.
-    go-download-base-url: # optional
+      - name: Compilar APK
+        run: |
+          cd source
+          /tmp/gradle-8.9/bin/gradle assembleDebug
 
-    - name: Setup .NET Core SDK
-  uses: actions/setup-dotnet@v6.0.0
-  with:
-    # Optional SDK version(s) to use. If not provided, will install global.json version when available. Examples: 2.2.104, 3.1, 3.1.x, 3.x, 6.0.2xx, latest
-    dotnet-version: # optional
-    # Optional quality of the build. The possible values are: daily, preview, ga.
-    dotnet-quality: # optional
-    # Optional channel for the installation. The possible values are: STS, LTS, A.B (e.g. 8.0), A.B.Cxx (e.g. 8.0.1xx, available since 5.0). To be used with "dotnet-version: latest".
-    dotnet-channel: # optional
-    # Optional global.json location, if your global.json isn't located in the root of the repo.
-    global-json-file: # optional
-    # Optional package source for which to set up authentication. Will consult any existing NuGet.config in the root of the repo and provide a temporary NuGet.config using the NUGET_AUTH_TOKEN environment variable as a ClearTextPassword
-    source-url: # optional
-    # Optional OWNER for using packages from GitHub Package Registry organizations/users other than the current repository's owner. Only used if a GPR URL is also provided in source-url
-    owner: # optional
-    # Optional NuGet.config location, if your NuGet.config isn't located in the root of the repo.
-    config-file: # optional
-    # Optional input to enable caching of the NuGet global-packages folder
-    cache: # optional
-    # Used to specify the path to a dependency file: packages.lock.json. Supports wildcards or a list of file names for caching multiple dependencies.
-    cache-dependency-path: # optional
-    # Optional SDK workloads to install for additional platform support. Examples: wasm-tools, maui, aspire.
-    workloads: # optional
-    # Optional architecture for the .NET install. Supported values: x64, x86, arm64, amd64, arm, s390x, ppc64le, riscv64. If not set, the installer auto-detects the current system architecture.
-    architecture: # optional
-
-    - name: First interaction
-  uses: actions/first-interaction@v1.3.0
-  with:
-    # Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}
-    repo-token: 
-    # Comment to post on an individual's first issue
-    issue-message: # optional
-    # Comment to post on an individual's first pull request
-    pr-message: # optional
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpanishHubAI-APK
+          path: source/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
