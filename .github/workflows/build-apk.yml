@@ -17,25 +17,6 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      name: Crear APK SpanishHub AI
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Descargar proyecto
-        uses: actions/checkout@v4
-
-      - name: Configurar Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
 
