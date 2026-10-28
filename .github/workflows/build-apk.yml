@@ -1,6 +1,6 @@
-name: Crear APK SpanishHub AI
-
-on:
+sí | sdkmanager --licenses
+     sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+si | sdkmanager --licensesname : Crear APK SpanishHub AI
   workflow_dispatch:
 
 jobs:
